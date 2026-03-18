@@ -20,7 +20,7 @@
 ### 安装步骤
 1. 下载本项目
 ```bash
-git clone https://github.com/butaihuia/ArkM.git
+git clone https://github.com/BTHawake/ArkM.git
 cd ArkM
 ```
 
