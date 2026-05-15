@@ -226,6 +226,15 @@ class MainWindow(QMainWindow):
         vol_row.addStretch()
         right_layout.addLayout(vol_row)
 
+        # 状态栏
+        self.statusLabel = QLabel("")
+        self.statusLabel.setObjectName("statusLabel")
+        self.statusLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.statusLabel.setStyleSheet("color: #888; font-size: 11px; border: none; background: transparent; padding: 4px;")
+        right_layout.addWidget(self.statusLabel)
+
+        right_layout.addStretch()
+
         body.addWidget(right, stretch=1)
         body_layout.addLayout(body, stretch=1)
         root_layout.addWidget(body_wrapper, stretch=1)
@@ -462,6 +471,7 @@ class MainWindow(QMainWindow):
         name = item.text()
         self._player.play(name)
         self._load_album_image(name)
+        self._highlight_playing(name)
 
     def _on_play_button(self):
         row = self.musicListWidget.currentRow()
@@ -469,6 +479,7 @@ class MainWindow(QMainWindow):
             name = self.musicListWidget.item(row).text()
             self._player.play(name)
             self._load_album_image(name)
+            self._highlight_playing(name)
         else:
             self._player.resume()
 
@@ -480,6 +491,8 @@ class MainWindow(QMainWindow):
         self.progressSlider.setValue(0)
         self.label_3.setText("00:00 / 00:00")
         self.songInfoLabel.setText("未在播放")
+        self.statusLabel.setText("")
+        self._clear_highlight()
 
     def _on_position_changed(self, position: int):
         if not self.progressSlider.isSliderDown():
@@ -495,13 +508,17 @@ class MainWindow(QMainWindow):
             music = self._player.current_music
             if music:
                 self.songInfoLabel.setText(music)
+                self.statusLabel.setText(f"正在播放: {music}")
         elif state == QMediaPlayer.PlaybackState.PausedState:
             self.playButton.setText("▶ 播放")
+            self.statusLabel.setText("已暂停")
         elif state == QMediaPlayer.PlaybackState.StoppedState:
             self.playButton.setText("▶ 播放")
             self.progressSlider.setValue(0)
             self.label_3.setText("00:00 / 00:00")
             self.songInfoLabel.setText("未在播放")
+            self.statusLabel.setText("")
+            self._clear_highlight()
 
     def _update_time_label(self):
         player = self._player.player
@@ -538,6 +555,74 @@ class MainWindow(QMainWindow):
         from ui.album_window import AlbumWindow
         w = AlbumWindow(self._controller)
         w.show()
+
+    # ======================== 播放高亮 ========================
+
+    def _highlight_playing(self, music_name: str):
+        """在已下载列表中高亮当前播放歌曲"""
+        self._clear_highlight()
+        for i in range(self.musicListWidget.count()):
+            item = self.musicListWidget.item(i)
+            if item.text() == music_name:
+                font = item.font()
+                font.setBold(True)
+                item.setFont(font)
+                item.setText(f"▶ {music_name}")
+                item.setForeground(Qt.GlobalColor("#00cc88"))
+                break
+
+    def _clear_highlight(self):
+        """清除所有高亮"""
+        for lst in (self.musicListWidget,):
+            for i in range(lst.count()):
+                item = lst.item(i)
+                text = item.text()
+                if text.startswith("▶ "):
+                    item.setText(text[2:])
+                font = item.font()
+                font.setBold(False)
+                item.setFont(font)
+                item.setData(Qt.ItemDataRole.ForegroundRole, None)
+
+    # ======================== 键盘事件 ========================
+
+    def keyPressEvent(self, event):
+        key = event.key()
+
+        # 判断哪个列表有焦点或当前标签页
+        current_tab = self.tabs.currentIndex()
+        if current_tab == 1:  # 已下载标签页
+            lst = self.musicListWidget
+        else:
+            lst = self.downloadlistWidget
+
+        if key == Qt.Key.Key_Up:
+            row = lst.currentRow()
+            if row > 0:
+                lst.setCurrentRow(row - 1)
+        elif key == Qt.Key.Key_Down:
+            row = lst.currentRow()
+            if row < lst.count() - 1:
+                lst.setCurrentRow(row + 1)
+        elif key in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+            row = lst.currentRow()
+            if row >= 0:
+                if current_tab == 1:
+                    name = lst.item(row).text().replace("▶ ", "")
+                    self._player.play(name)
+                    self._load_album_image(name)
+                    self._highlight_playing(name)
+                else:
+                    self._start_download(lst.item(row).text())
+        elif key == Qt.Key.Key_Space:
+            state = self._player.playback_state()
+            from PySide6.QtMultimedia import QMediaPlayer as QMP
+            if state == QMP.PlaybackState.PlayingState:
+                self._player.pause()
+            else:
+                self._player.resume()
+        else:
+            super().keyPressEvent(event)
 
     # ======================== 底部折叠 ========================
 
