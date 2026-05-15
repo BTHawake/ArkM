@@ -440,23 +440,4 @@ class MainHandlersMixin:
         event.ignore()
         self.hide()
 
-    # ======================== 窗口拖动 ========================
-
-    def mousePressEvent(self, event):
-        if event.button() == Qt.MouseButton.LeftButton:
-            # 只在标题栏区域拖动
-            title_bar = self.findChild(QWidget, "titleBar")
-            if title_bar and title_bar.geometry().contains(event.pos()):
-                self._drag_pos = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
-            else:
-                self._drag_pos = None
-        super().mousePressEvent(event)
-
-    def mouseMoveEvent(self, event):
-        if self._drag_pos is not None:
-            self.move(event.globalPosition().toPoint() - self._drag_pos)
-        super().mouseMoveEvent(event)
-
-    def mouseReleaseEvent(self, event):
-        self._drag_pos = None
-        super().mouseReleaseEvent(event)
+    # 窗口拖动事件在 main_window.py 本体中定义（Mixin MRO 不命中）

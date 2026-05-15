@@ -361,4 +361,24 @@ class MainWindow(QMainWindow, MainHandlersMixin):
         QShortcut(QKeySequence("Ctrl+Delete"), self).activated.connect(self._on_delete_button)
         QShortcut(QKeySequence("Ctrl+L"), self).activated.connect(self._on_clear_log)
 
+    # ======================== 窗口拖动（必须在 MainWindow 本体，Mixin MRO 不命中） ========================
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton and event.position().y() <= 32:
+            self._drag_pos = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
+            event.accept()
+            return
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        if getattr(self, '_drag_pos', None) is not None:
+            self.move(event.globalPosition().toPoint() - self._drag_pos)
+            event.accept()
+            return
+        super().mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        self._drag_pos = None
+        super().mouseReleaseEvent(event)
+
     # ======================== 初始化 ========================
