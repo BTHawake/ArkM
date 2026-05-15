@@ -11,6 +11,7 @@ class AlbumCard(QWidget):
     """单张专辑封面卡片"""
 
     def __init__(self, album: dict, parent=None):
+        """初始化卡片：加载封面图和专辑名。"""
         super().__init__(parent)
         self.album = album
         self.setFixedSize(220, 280)
@@ -75,6 +76,7 @@ class PreviewDialog(QMainWindow):
     """封面预览窗口"""
 
     def __init__(self, album: dict, parent=None):
+        """初始化预览窗口：展示大尺寸封面图。"""
         super().__init__(parent)
         self.setWindowTitle(f"专辑封面: {album.get('name', '')}")
         self.setWindowIcon(QIcon("prts.ico"))
@@ -116,6 +118,7 @@ class AlbumWindow(QMainWindow):
     """专辑封面浏览窗口"""
 
     def __init__(self, controller, parent=None):
+        """初始化专辑浏览窗口：网格布局展示所有专辑封面。"""
         super().__init__(parent)
         self._controller = controller
 

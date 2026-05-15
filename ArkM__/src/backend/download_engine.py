@@ -3,12 +3,9 @@ import os
 import json
 import random
 import logging
-from dataclasses import dataclass
-from time import sleep
-from typing import Any, TypeAlias, TypeGuard, Callable, Optional
-from abc import ABC
+from typing import Any, Callable, Optional
 
-from requests import Response, get, RequestException
+from requests import get
 
 from config import (
     API_SONGS,
@@ -17,75 +14,16 @@ from config import (
     SUFFIX_MAPPING_FILE,
     MUSIC_PATH,
 )
+from core.result import (
+    Result, Ok, Err,
+    is_ok, is_err,
+    noexcept_get, get_response_json,
+)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 ProgressCallback = Optional[Callable[[str, int, int], None]]
-
-
-# ---- Result 类型 ----
-
-class _Result(ABC):
-    def unwrap_or(self, default: Any) -> Any: ...
-
-    def unwrap(self) -> Any: ...
-
-
-@dataclass
-class Ok(_Result):
-    value: Any
-
-    def unwrap_or(self, default: Any) -> Any:
-        return self.value
-
-    def unwrap(self) -> Any:
-        return self.value
-
-
-@dataclass
-class Err(_Result):
-    error: Any
-
-    def unwrap_or(self, default: Any) -> Any:
-        return default
-
-    def unwrap(self) -> None:
-        raise self.error
-
-
-Result: TypeAlias = Ok | Err
-
-
-def is_ok(result: Result) -> TypeGuard[Ok]:
-    return isinstance(result, Ok)
-
-
-def is_err(result: Result) -> TypeGuard[Err]:
-    return isinstance(result, Err)
-
-
-def noexcept_get(*args, **kwargs) -> Result:
-    """安全的 GET 请求，包含重试机制"""
-    max_retries = 3
-    for attempt in range(max_retries):
-        try:
-            response = get(*args, **kwargs)
-            response.raise_for_status()
-            return Ok(response)
-        except RequestException as e:
-            if attempt == max_retries - 1:
-                return Err(e)
-            logger.warning(f"请求失败，第{attempt + 1}次重试: {e}")
-            sleep(2**attempt)
-    return Err(Exception("所有重试都失败了"))
-
-
-def get_response_json(response: Response) -> Result:
-    try:
-        return Ok(response.json())
-    except Exception as e:
-        return Err(e)
 
 
 def format_size(size_bytes):

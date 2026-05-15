@@ -107,33 +107,40 @@ class MusicPlayer(QObject):
 
     @property
     def current_music(self):
+        """当前播放的歌曲名。"""
         return self._current_music
 
     @property
     def last_music(self):
+        """上一次播放的歌曲名。"""
         return self._last_music
 
     def playback_state(self):
+        """返回当前播放器状态。"""
         return self.player.playbackState()
 
     def position(self) -> int:
+        """获取当前播放位置（毫秒）。"""
         return self.player.position()
 
     def duration(self) -> int:
+        """获取当前歌曲总时长（毫秒）。"""
         return self.player.duration()
 
     # ---- 内部回调 ----
 
     def _on_position_changed(self, position: int):
-        """仅用于更新滑块（由 main_window 连接）"""
-        pass  # 子类或外部通过信号覆盖
+        """播放位置变更回调（由外部覆盖）。"""
+        pass
 
     def _on_duration_changed(self, duration: int):
+        """歌曲时长变更回调（由外部覆盖）。"""
         pass
 
     def _on_playback_state_changed(self, state):
+        """播放状态变更回调（由外部覆盖）。"""
         pass
 
     def _update_progress(self):
-        """更新进度时间文字。"""
+        """更新进度时间文字（由外部覆盖）。"""
         pass

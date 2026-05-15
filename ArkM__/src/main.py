@@ -46,6 +46,7 @@ class ApplicationController:
     """应用程序控制器：管理窗口切换路由"""
 
     def __init__(self):
+        """初始化 QApplication 与控制器状态。"""
         self.app = QApplication(sys.argv)
         self.app.setStyle('Fusion')
         self._current_window = None
@@ -71,21 +72,25 @@ class ApplicationController:
         return self.app.exec()
 
     def _open_start(self):
+        """切换到启动/唤醒窗口。"""
         self._close_current()
         self._current_window = StartMusic(self._on_start_complete)
         self._current_window.show()
 
     def _open_main(self):
+        """切换到主窗口。"""
         self._close_current()
         self._current_window = MainWindow(self._dr_name, on_quit=_kill_backend)
         self._current_window.show()
 
     def _close_current(self):
+        """关闭当前窗口并置空引用。"""
         if self._current_window:
             self._current_window.close()
             self._current_window = None
 
     def _on_start_complete(self, result: str, dr_name: str):
+        """处理启动窗口完成信号：进入主界面或退出。"""
         if result == "Yes":
             self._dr_name = dr_name
             self._open_main()

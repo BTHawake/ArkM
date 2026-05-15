@@ -1,10 +1,13 @@
-# enhanced_logger.py
+"""日志组件：格式化日志输出与下载进度显示。"""
 import datetime
 from PySide6.QtGui import QTextCursor, QFont
 
 
 class EnhancedLogger:
+    """增强日志记录器：彩色日志输出 + 下载进度条。"""
+
     def __init__(self, text_browser,download_browser):
+        """绑定日志与下载进度两个输出控件。"""
         self.text_browser = text_browser
         self.download_browser = download_browser
         self.max_lines = 1000
