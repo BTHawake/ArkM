@@ -1,1 +1,13 @@
-!./ArkM__/src/
+# Ignore everything at root
+/*
+
+# Except ArkM__ directory
+!/ArkM__/
+
+# Inside ArkM__, ignore everything except src
+/ArkM__/*
+!/ArkM__/src/
+
+# Ignore Python cache
+__pycache__/
+*.pyc
