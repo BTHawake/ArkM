@@ -8,6 +8,10 @@
 /ArkM__/*
 !/ArkM__/src/
 
+# Except Electron frontend
+!/electron-v2/
+/electron-v2/node_modules/
+
 # Ignore Python cache
 __pycache__/
 *.pyc

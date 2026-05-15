@@ -114,6 +114,33 @@ async def delete(req: DeleteRequest):
     return {"success": success, "message": message}
 
 
+# ---- 音乐流媒体端点 ----
+
+@app.get("/stream/{music_name}")
+async def stream_music(music_name: str):
+    """根据歌名流式返回音频文件"""
+    from .download_engine import MUSIC_PATH, name2cid, cid2suffix
+
+    music_dir = MUSIC_PATH
+    if not os.path.exists(music_dir):
+        raise HTTPException(status_code=404, detail="音乐目录不存在")
+
+    # 按文件名前缀匹配
+    found = None
+    for f in sorted(os.listdir(music_dir)):
+        if music_name in f and f.endswith(('.mp3', '.wav', '.ogg', '.flac')):
+            found = f
+            break
+    if not found:
+        raise HTTPException(status_code=404, detail=f"未找到歌曲: {music_name}")
+
+    path = os.path.join(music_dir, found)
+    ext = found.rsplit('.', 1)[-1]
+    mime_map = {"mp3": "audio/mpeg", "wav": "audio/wav", "ogg": "audio/ogg", "flac": "audio/flac"}
+    media_type = mime_map.get(ext, "audio/mpeg")
+    return FileResponse(path, media_type=media_type)
+
+
 # ---- 专辑封面端点 ----
 
 @app.get("/album/list")
