@@ -74,10 +74,13 @@ class MainWindow(QMainWindow):
         self.setMinimumSize(1100, 650)
         self.setWindowIcon(QIcon("prts.ico"))
         self.setStyleSheet(ARK_STYLESHEET)
+        self.setWindowOpacity(0.88)
 
         self._download_thread = None
         self._delete_thread = None
         self._drag_pos = None
+        self._play_queue: list[str] = []
+        self._download_queue: list[str] = []
 
         self._build_ui()
         self._init_data()
@@ -167,7 +170,7 @@ class MainWindow(QMainWindow):
         self.albumImage = QLabel()
         self.albumImage.setObjectName("albumImage")
         self.albumImage.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.albumImage.setMinimumSize(280, 280)
+        self.albumImage.setMinimumSize(320, 320)
         self.albumImage.setText("点击歌曲查看封面")
         self.albumImage.setStyleSheet("""
             QLabel#albumImage {
@@ -290,6 +293,7 @@ class MainWindow(QMainWindow):
         search_input.setPlaceholderText("搜索歌曲...")
         search_btn = QPushButton("搜索")
         list_widget = QListWidget()
+        list_widget.setSelectionMode(QListWidget.SelectionMode.ExtendedSelection)
         primary_btn = QPushButton(primary_label)
         refresh_btn = QPushButton("刷新")
 
@@ -375,20 +379,33 @@ class MainWindow(QMainWindow):
     # ======================== 列表刷新 ========================
 
     def _refresh_download_view(self):
-        keyword = self.downloadSearchInput.text()
+        keyword = self.downloadSearchInput.text().strip()
         items = self._controller.filter_download_items(keyword)
         self.downloadlistWidget.clear()
         for name in items:
-            self.downloadlistWidget.addItem(QListWidgetItem(name))
+            item = QListWidgetItem()
+            self._set_item_highlight(item, name, keyword)
+            self.downloadlistWidget.addItem(item)
         self._logger.log(f"待下载: {len(items)} 首", "INFO")
 
     def _refresh_music_view(self):
-        keyword = self.musicSearchInput.text()
+        keyword = self.musicSearchInput.text().strip()
         items = self._controller.filter_music_items(keyword)
         self.musicListWidget.clear()
         for name in items:
-            self.musicListWidget.addItem(QListWidgetItem(name))
+            item = QListWidgetItem()
+            self._set_item_highlight(item, name, keyword)
+            self.musicListWidget.addItem(item)
         self._logger.log(f"已下载: {len(items)} 首", "INFO")
+
+    @staticmethod
+    def _set_item_highlight(item: QListWidgetItem, name: str, keyword: str):
+        """搜索关键词高亮：匹配时加绿色前景色"""
+        item.setText(name)
+        if keyword and keyword.lower() in name.lower():
+            item.setForeground(Qt.GlobalColor("#00cc88"))
+        else:
+            item.setData(Qt.ItemDataRole.ForegroundRole, None)
 
     # ======================== 搜索 ========================
 
@@ -409,11 +426,19 @@ class MainWindow(QMainWindow):
             self._start_download(music_name)
 
     def _on_download_button(self):
-        row = self.downloadlistWidget.currentRow()
-        if row < 0:
-            QMessageBox.warning(self, "提示", "请先选择一首歌曲")
+        selected = self.downloadlistWidget.selectedItems()
+        if not selected:
+            QMessageBox.warning(self, "提示", "请先选择歌曲")
             return
-        self._start_download(self.downloadlistWidget.item(row).text())
+        names = [it.text() for it in selected]
+        if len(names) > 1:
+            reply = QMessageBox.question(self, "ArkM", f"确定下载 {len(names)} 首歌曲吗？",
+                                         QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                                         QMessageBox.StandardButton.Yes)
+            if reply != QMessageBox.StandardButton.Yes:
+                return
+        self._download_queue = names
+        self._process_download_queue()
 
     def _start_download(self, music_name: str):
         if self._download_thread and self._download_thread.isRunning():
@@ -426,16 +451,28 @@ class MainWindow(QMainWindow):
         self.downloadButton.setEnabled(False)
         self._logger.log(f"开始下载: {music_name}", "INFO")
 
+    def _process_download_queue(self):
+        """批量下载：从队列取下一首开始"""
+        if not self._download_queue:
+            self.downloadButton.setEnabled(True)
+            return
+        name = self._download_queue.pop(0)
+        self._start_download(name)
+
     def _on_download_done(self, success: bool, message: str):
-        self.downloadButton.setEnabled(True)
         self._logger.clear_progress()
         if success:
             self._controller.on_download_done(success, message)
             self._refresh_download_view()
             self._refresh_music_view()
-            QMessageBox.information(self, "ArkM", f"下载成功！")
         else:
             self._logger.log(message, "ERROR")
+        if self._download_queue:
+            self._process_download_queue()
+        else:
+            self.downloadButton.setEnabled(True)
+            if success:
+                QMessageBox.information(self, "ArkM", "下载完成！")
 
     # ======================== 删除 ========================
 
@@ -468,7 +505,14 @@ class MainWindow(QMainWindow):
     # ======================== 播放 ========================
 
     def _on_music_double_click(self, item):
-        name = item.text()
+        name = item.text().replace("▶ ", "")
+        self._play_queue.insert(0, name)
+        self._play_next()
+
+    def _play_next(self):
+        if not self._play_queue:
+            return
+        name = self._play_queue.pop(0)
         self._player.play(name)
         self._load_album_image(name)
         self._highlight_playing(name)
@@ -476,10 +520,9 @@ class MainWindow(QMainWindow):
     def _on_play_button(self):
         row = self.musicListWidget.currentRow()
         if row >= 0:
-            name = self.musicListWidget.item(row).text()
-            self._player.play(name)
-            self._load_album_image(name)
-            self._highlight_playing(name)
+            name = self.musicListWidget.item(row).text().replace("▶ ", "")
+            self._play_queue.insert(0, name)
+            self._play_next()
         else:
             self._player.resume()
 
@@ -517,8 +560,11 @@ class MainWindow(QMainWindow):
             self.progressSlider.setValue(0)
             self.label_3.setText("00:00 / 00:00")
             self.songInfoLabel.setText("未在播放")
-            self.statusLabel.setText("")
-            self._clear_highlight()
+            if self._play_queue:
+                self._play_next()
+            else:
+                self.statusLabel.setText("")
+                self._clear_highlight()
 
     def _update_time_label(self):
         player = self._player.player
@@ -543,13 +589,45 @@ class MainWindow(QMainWindow):
             if album and album.get("cover_path") and os.path.exists(album["cover_path"]):
                 pixmap = QPixmap(album["cover_path"])
                 if not pixmap.isNull():
-                    self.albumImage.clear()
-                    self.albumImage.setPixmap(pixmap)
+                    self._fade_in_cover(pixmap)
                     return
             self.albumImage.clear()
             self.albumImage.setText("点击歌曲查看封面")
         except Exception as e:
             self._logger.log(f"封面加载失败: {e}", "ERROR")
+
+    def _fade_in_cover(self, pixmap: QPixmap):
+        """封面淡入动画 — 用 QVariantAnimation 驱动 QWidget 重绘 alpha"""
+        scaled = pixmap.scaled(
+            self.albumImage.width(), self.albumImage.height(),
+            Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation,
+        )
+        self._cover_pixmap = scaled
+        self._cover_target = pixmap.scaled(
+            self.albumImage.width(), self.albumImage.height(),
+            Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation,
+        )
+        self._cover_alpha = 0
+
+        from PySide6.QtCore import QVariantAnimation, QEasingCurve
+        self._cover_anim = QVariantAnimation()
+        self._cover_anim.setDuration(400)
+        self._cover_anim.setStartValue(0)
+        self._cover_anim.setEndValue(255)
+        self._cover_anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self._cover_anim.valueChanged.connect(self._on_cover_frame)
+        self._cover_anim.start()
+
+    def _on_cover_frame(self, alpha):
+        self._cover_alpha = alpha
+        pix = QPixmap(self._cover_target.size())
+        pix.fill(Qt.GlobalColor.transparent)
+        from PySide6.QtGui import QPainter
+        p = QPainter(pix)
+        p.setOpacity(alpha / 255.0)
+        p.drawPixmap(0, 0, self._cover_target)
+        p.end()
+        self.albumImage.setPixmap(pix)
 
     def _open_album_window(self):
         from ui.album_window import AlbumWindow
@@ -568,7 +646,7 @@ class MainWindow(QMainWindow):
                 font.setBold(True)
                 item.setFont(font)
                 item.setText(f"▶ {music_name}")
-                item.setForeground(Qt.GlobalColor("#00cc88"))
+                item.setForeground(Qt.GlobalColor.darkCyan)
                 break
 
     def _clear_highlight(self):
@@ -609,9 +687,8 @@ class MainWindow(QMainWindow):
             if row >= 0:
                 if current_tab == 1:
                     name = lst.item(row).text().replace("▶ ", "")
-                    self._player.play(name)
-                    self._load_album_image(name)
-                    self._highlight_playing(name)
+                    self._play_queue.insert(0, name)
+                    self._play_next()
                 else:
                     self._start_download(lst.item(row).text())
         elif key == Qt.Key.Key_Space:
@@ -635,6 +712,21 @@ class MainWindow(QMainWindow):
         self._logger.clear()
 
     # ======================== 窗口 ========================
+
+    def _enable_acrylic(self):
+        """启用 Windows Acrylic/Mica 模糊背景"""
+        try:
+            import ctypes
+            hwnd = int(self.winId())
+            DWMWA_SYSTEMBACKDROP_TYPE = 38
+            DWMSBT_MAINWINDOW = 2
+            ctypes.windll.dwmapi.DwmSetWindowAttribute(
+                hwnd, DWMWA_SYSTEMBACKDROP_TYPE,
+                ctypes.byref(ctypes.c_int(DWMSBT_MAINWINDOW)),
+                ctypes.sizeof(ctypes.c_int),
+            )
+        except Exception:
+            pass
 
     def _center_window(self):
         screen = QApplication.primaryScreen().availableGeometry()

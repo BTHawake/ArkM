@@ -59,13 +59,13 @@ QLabel#label {
 /* 输入框样式 */
 QLineEdit#InputEdit {
     background: rgba(30, 30, 30, 0.9);
-    border: 1px solid #555555;
-    border-radius: 6px;
+    border: 1px solid #444444;
+    border-radius: 8px;
     color: #e0e0e0;
     font-family: "Consolas", "Microsoft YaHei UI";
     font-size: 11px;
     font-weight: bold;
-    padding: 8px 12px;
+    padding: 10px 14px;
     selection-background-color: #606060;
 }
 
@@ -83,13 +83,13 @@ QLineEdit#InputEdit::placeholder {
 QPushButton#okButton {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                                stop:0 #505050, stop:0.5 #404040, stop:1 #505050);
-    border: 1px solid #666666;
-    border-radius: 6px;
+    border: 1px solid #555555;
+    border-radius: 8px;
     color: #e0e0e0;
     font-family: "Microsoft YaHei UI", "Segoe UI";
     font-size: 11px;
     font-weight: bold;
-    padding: 8px 16px;
+    padding: 9px 18px;
     min-width: 70px;
 }
 
@@ -110,13 +110,13 @@ QPushButton#okButton:pressed {
 QPushButton#noButton {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                                stop:0 #505050, stop:0.5 #404040, stop:1 #505050);
-    border: 1px solid #666666;
-    border-radius: 6px;
+    border: 1px solid #555555;
+    border-radius: 8px;
     color: #e0e0e0;
     font-family: "Microsoft YaHei UI", "Segoe UI";
     font-size: 11px;
     font-weight: bold;
-    padding: 8px 16px;
+    padding: 9px 18px;
     min-width: 70px;
 }
 
@@ -172,16 +172,14 @@ QSpacerItem {
 ARK_STYLESHEET = """
 /* ===== 主窗口样式 ===== */
 QMainWindow {
-    background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                               stop:0 #1a1a1a, stop:0.5 #2a2a2a, stop:1 #1a1a1a);
+    background: rgba(20, 20, 20, 0.9);
     color: #e0e0e0;
     border: 1px solid #555;
 }
 
 /* ===== 自绘标题栏 ===== */
 QWidget#titleBar {
-    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                               stop:0 #2a2a2a, stop:1 #1a1a1a);
+    background: rgba(30, 30, 30, 0.8);
     border-bottom: 1px solid #444;
 }
 
@@ -227,13 +225,13 @@ QLabel {
 QPushButton {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                                stop:0 #404040, stop:0.5 #303030, stop:1 #404040);
-    border: 1px solid #666666;
-    border-radius: 6px;
+    border: 1px solid #555555;
+    border-radius: 8px;
     color: #e0e0e0;
     font-family: "Microsoft YaHei UI", "Segoe UI";
     font-size: 11px;
     font-weight: bold;
-    padding: 8px 16px;
+    padding: 9px 18px;
     min-width: 70px;
 }
 
@@ -304,7 +302,7 @@ QPushButton#stopButton:hover {
 
 /* ===== 输入框样式 ===== */
 QLineEdit {
-    background: rgba(30, 30, 30, 0.9);
+    background: rgba(30, 30, 30, 0.65);
     border: 1px solid #555555;
     border-radius: 6px;
     color: #e0e0e0;
@@ -321,39 +319,39 @@ QLineEdit:focus {
 
 /* ===== 列表控件样式 ===== */
 QListWidget {
-    background: rgba(25, 25, 25, 0.9);
-    border: 1px solid #555555;
-    border-radius: 6px;
+    background: rgba(25, 25, 25, 0.8);
+    border: 1px solid #444444;
+    border-radius: 8px;
     color: #e0e0e0;
     font-family: "Microsoft YaHei UI", "Segoe UI";
-    font-size: 11px;
+    font-size: 12px;
     outline: none;
 }
 
 QListWidget::item {
     background: transparent;
     border: none;
-    padding: 8px 12px;
-    margin: 2px;
-    border-radius: 4px;
-    border-bottom: 1px solid rgba(70, 70, 70, 0.5);
+    padding: 10px 14px;
+    margin: 2px 4px;
+    border-radius: 6px;
+    border-bottom: 1px solid rgba(60, 60, 60, 0.4);
 }
 
 QListWidget::item:selected {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                               stop:0 #606060, stop:1 #505050);
+                               stop:0 #555555, stop:1 #484848);
     color: #ffffff;
     border: none;
 }
 
 QListWidget::item:hover {
-    background: rgba(60, 60, 60, 0.6);
+    background: rgba(55, 55, 55, 0.8);
     border: none;
 }
 
 /* ===== 文本浏览器样式（日志） ===== */
 QTextBrowser {
-    background: rgba(20, 20, 20, 0.95);
+    background: rgba(20, 20, 20, 0.65);
     border: 1px solid #555555;
     border-radius: 6px;
     color: #e0e0e0;
@@ -464,13 +462,13 @@ QMessageBox QLabel {
 QMessageBox QPushButton {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                                stop:0 #404040, stop:0.5 #303030, stop:1 #404040);
-    border: 1px solid #666666;
-    border-radius: 6px;
+    border: 1px solid #555555;
+    border-radius: 8px;
     color: #e0e0e0;
     font-family: "Microsoft YaHei UI", "Segoe UI";
     font-size: 11px;
     font-weight: bold;
-    padding: 8px 16px;
+    padding: 9px 18px;
     min-width: 70px;
 }
 
@@ -504,7 +502,7 @@ QInputDialog QLabel {
 }
 
 QInputDialog QLineEdit {
-    background: rgba(30, 30, 30, 0.9);
+    background: rgba(30, 30, 30, 0.65);
     border: 1px solid #555555;
     border-radius: 6px;
     color: #e0e0e0;
@@ -516,13 +514,13 @@ QInputDialog QLineEdit {
 QInputDialog QPushButton {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                                stop:0 #404040, stop:0.5 #303030, stop:1 #404040);
-    border: 1px solid #666666;
-    border-radius: 6px;
+    border: 1px solid #555555;
+    border-radius: 8px;
     color: #e0e0e0;
     font-family: "Microsoft YaHei UI", "Segoe UI";
     font-size: 11px;
     font-weight: bold;
-    padding: 8px 16px;
+    padding: 9px 18px;
     min-width: 70px;
 }
 
@@ -560,7 +558,7 @@ QFileDialog QTreeView, QFileDialog QListView {
 }
 
 QFileDialog QLineEdit {
-    background: rgba(30, 30, 30, 0.9);
+    background: rgba(30, 30, 30, 0.65);
     border: 1px solid #555555;
     border-radius: 6px;
     color: #e0e0e0;
@@ -572,13 +570,13 @@ QFileDialog QLineEdit {
 QFileDialog QPushButton {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
                                stop:0 #404040, stop:0.5 #303030, stop:1 #404040);
-    border: 1px solid #666666;
-    border-radius: 6px;
+    border: 1px solid #555555;
+    border-radius: 8px;
     color: #e0e0e0;
     font-family: "Microsoft YaHei UI", "Segoe UI";
     font-size: 11px;
     font-weight: bold;
-    padding: 8px 16px;
+    padding: 9px 18px;
     min-width: 70px;
 }
 
@@ -591,7 +589,7 @@ QFileDialog QPushButton:hover {
 
 /* ===== 标签页样式 ===== */
 QTabWidget::pane {
-    background: rgba(25, 25, 25, 0.9);
+    background: rgba(25, 25, 25, 0.5);
     border: 1px solid #555;
     border-radius: 4px;
 }
