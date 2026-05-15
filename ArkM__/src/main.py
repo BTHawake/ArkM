@@ -77,7 +77,7 @@ class ApplicationController:
 
     def _open_main(self):
         self._close_current()
-        self._current_window = MainWindow(self._dr_name)
+        self._current_window = MainWindow(self._dr_name, on_quit=_kill_backend)
         self._current_window.show()
 
     def _close_current(self):

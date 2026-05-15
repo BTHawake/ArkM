@@ -175,6 +175,34 @@ QMainWindow {
     background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
                                stop:0 #1a1a1a, stop:0.5 #2a2a2a, stop:1 #1a1a1a);
     color: #e0e0e0;
+    border: 1px solid #555;
+}
+
+/* ===== 自绘标题栏 ===== */
+QWidget#titleBar {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                               stop:0 #2a2a2a, stop:1 #1a1a1a);
+    border-bottom: 1px solid #444;
+}
+
+QPushButton#titleMinBtn, QPushButton#titleCloseBtn {
+    background: transparent;
+    border: none;
+    border-radius: 2px;
+    color: #aaa;
+    font-size: 13px;
+    font-weight: bold;
+    padding: 0;
+}
+
+QPushButton#titleMinBtn:hover {
+    background: #444;
+    color: #ddd;
+}
+
+QPushButton#titleCloseBtn:hover {
+    background: #c42b1c;
+    color: #fff;
 }
 
 QWidget#centralwidget {
@@ -559,6 +587,57 @@ QFileDialog QPushButton:hover {
                                stop:0 #505050, stop:0.5 #404040, stop:1 #505050);
     border: 1px solid #888888;
     color: #ffffff;
+}
+
+/* ===== 标签页样式 ===== */
+QTabWidget::pane {
+    background: rgba(25, 25, 25, 0.9);
+    border: 1px solid #555;
+    border-radius: 4px;
+}
+
+QTabBar::tab {
+    background: #2a2a2a;
+    border: 1px solid #555;
+    border-radius: 4px;
+    padding: 6px 16px;
+    margin: 2px;
+    color: #ccc;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+QTabBar::tab:selected {
+    background: #3a3a3a;
+    color: #fff;
+    border-color: #888;
+}
+
+QTabBar::tab:hover {
+    background: #333;
+}
+
+/* ===== 折叠按钮 ===== */
+QPushButton#toggleLogBtn {
+    background: #2a2a2a;
+    border: 1px solid #555;
+    border-radius: 3px;
+    color: #aaa;
+    font-size: 10px;
+    padding: 2px 8px;
+}
+QPushButton#toggleLogBtn:hover {
+    background: #3a3a3a;
+    color: #ddd;
+}
+
+/* ===== 歌曲信息 ===== */
+QLabel#songInfoLabel {
+    color: #ddd;
+    font-size: 13px;
+    font-weight: bold;
+    background: transparent;
+    border: none;
 }
 
 /* ===== 布局间距调整 ===== */
