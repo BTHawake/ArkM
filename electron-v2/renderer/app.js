@@ -266,14 +266,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // 播放/暂停时切换脉冲动画
+  // 播放/暂停时切换脉冲动画 + 图标
+  const playIcon = document.querySelector('#btn-play i');
   audio.addEventListener('play', () => {
     document.getElementById('btn-play').classList.add('playing');
-    document.getElementById('btn-play').textContent = '⏸';
+    if (playIcon) playIcon.textContent = 'pause';
   });
   audio.addEventListener('pause', () => {
     document.getElementById('btn-play').classList.remove('playing');
-    document.getElementById('btn-play').textContent = '▶';
+    if (playIcon) playIcon.textContent = 'play_arrow';
   });
 
   // 弹出面板
@@ -283,9 +284,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // 日志
   document.getElementById('log-toggle').addEventListener('click', () => {
     const panel = document.getElementById('log-panel');
-    const btn = document.getElementById('log-toggle');
+    const icon = document.querySelector('#log-toggle i');
     panel.classList.toggle('collapsed');
-    btn.textContent = panel.classList.contains('collapsed') ? '◀' : '▶';
+    if (icon) icon.textContent = panel.classList.contains('collapsed') ? 'chevron_left' : 'chevron_right';
   });
   document.getElementById('log-clear').addEventListener('click', () => {
     document.getElementById('log-output').textContent = '';

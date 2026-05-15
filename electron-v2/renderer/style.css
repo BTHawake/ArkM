@@ -98,7 +98,26 @@ body {
 .nav-btn:hover { background: rgba(60,60,60,0.6); color: #ddd; }
 .nav-btn.active { background: rgba(80,80,80,0.5); color: #fff; }
 .nav-btn * { pointer-events: none; }
-.nav-icon { font-size: 20px; }
+.nav-icon { font-size: 22px; }
+
+/* Material Icons 全局 */
+.material-icons {
+  font-size: inherit;
+  vertical-align: middle;
+  color: inherit;
+}
+
+/* 标题栏按钮图标 */
+.title-btn .material-icons { font-size: 16px; }
+
+/* 播放按钮图标 */
+#btn-play .material-icons, #btn-pause .material-icons { font-size: 20px; }
+
+/* 音量图标 */
+.vol-icon { font-size: 18px; }
+
+/* 队列按钮 */
+#bar-queue-btn .material-icons { font-size: 20px; }
 
 /* ---- 封面网格 ---- */
 #cover-area {

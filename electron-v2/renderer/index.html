@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ArkM</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -11,8 +12,12 @@
   <div id="title-bar">
     <span id="title-text">ArkM - 明日方舟音乐终端</span>
     <div id="title-actions">
-      <button class="title-btn" id="min-btn">─</button>
-      <button class="title-btn title-close" id="close-btn">✕</button>
+      <button class="title-btn" id="min-btn">
+        <i class="material-icons">minimize</i>
+      </button>
+      <button class="title-btn title-close" id="close-btn">
+        <i class="material-icons">close</i>
+      </button>
     </div>
   </div>
 
@@ -21,11 +26,11 @@
     <!-- 侧栏 -->
     <nav id="sidebar">
       <button class="nav-btn active" data-view="0">
-        <span class="nav-icon">📥</span>
+        <i class="material-icons nav-icon">download</i>
         <span>待下载</span>
       </button>
       <button class="nav-btn" data-view="1">
-        <span class="nav-icon">📀</span>
+        <i class="material-icons nav-icon">library_music</i>
         <span>本机曲库</span>
       </button>
     </nav>
@@ -41,7 +46,9 @@
     <!-- 日志侧栏 -->
     <aside id="log-panel">
       <div id="log-header">
-        <button id="log-toggle">▶</button>
+        <button id="log-toggle">
+          <i class="material-icons">chevron_right</i>
+        </button>
         <span>日志</span>
         <button id="log-clear">清空</button>
       </div>
@@ -64,19 +71,25 @@
 
   <!-- 底部播放条 -->
   <div id="player-bar">
-    <button id="btn-play" title="播放">▶</button>
-    <button id="btn-pause" title="停止">⏹</button>
+    <button id="btn-play" title="播放">
+      <i class="material-icons">play_arrow</i>
+    </button>
+    <button id="btn-pause" title="停止">
+      <i class="material-icons">stop</i>
+    </button>
     <div id="progress-container">
       <input type="range" id="progress-bar" min="0" max="1000" value="0">
     </div>
     <span id="time-label">00:00 / 00:00</span>
     <div id="volume-container">
-      <span class="vol-icon">🔊</span>
+      <i class="material-icons vol-icon">volume_up</i>
       <input type="range" id="volume-bar" min="0" max="100" value="50">
     </div>
     <div class="bar-spacer"></div>
     <button id="bar-cover-btn" title="当前歌曲"></button>
-    <button id="bar-queue-btn" title="播放列表">📋</button>
+    <button id="bar-queue-btn" title="播放列表">
+      <i class="material-icons">queue_music</i>
+    </button>
   </div>
 
   <audio id="audio-player" preload="none"></audio>
