@@ -12,7 +12,8 @@ from widgets.ArkM import Ui_MainWindow
 from ark_style import ARK_STYLESHEET
 from utils.logger import EnhancedLogger
 from core.music_player import MusicPlayer
-from core.music_controller import MusicController, BACKEND_URL
+from core.music_controller import MusicController
+from core.api_client import ArkMApiClient
 
 
 class DownloadThread(QThread):
@@ -26,14 +27,8 @@ class DownloadThread(QThread):
 
     def run(self):
         try:
-            import requests
-            resp = requests.post(
-                f"{BACKEND_URL}/music/download",
-                json={"music_name": self.music_name},
-                stream=True,
-                timeout=(10, 300),  # connect 10s, read 5min
-            )
-            resp.raise_for_status()
+            api = ArkMApiClient()
+            resp = api.download(self.music_name)
 
             for line in resp.iter_lines(decode_unicode=True):
                 if not line or not line.startswith("data: "):
@@ -62,13 +57,8 @@ class DeleteThread(QThread):
 
     def run(self):
         try:
-            resp = requests.post(
-                f"{BACKEND_URL}/music/delete",
-                json={"music_name": self.music_name},
-                timeout=10,
-            )
-            resp.raise_for_status()
-            data = resp.json()
+            api = ArkMApiClient()
+            data = api.delete(self.music_name)
             self.finished.emit(data["success"], data["message"])
         except Exception as e:
             self.finished.emit(False, f"删除过程中出错: {str(e)}")
@@ -286,7 +276,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def _on_music_double_click(self, item):
         music_name = item.text()
-        self._logger.log(f"[封面] 触发双击: {music_name}", "INFO")
         self._player.play(music_name)
         self._load_album_image(music_name)
 
@@ -346,23 +335,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def _load_album_image(self, music_name: str):
         """根据歌名加载专辑封面到 albumImage"""
-        self._logger.log(f"[封面] 开始加载: {music_name}", "INFO")
-
-        # 在主线程中同步执行，requests.get 是快速本地 HTTP 调用，耗时 < 100ms
         try:
             album = self._controller.get_album_cover(music_name)
-            if album and album.get("cover_path"):
-                cover_path = album["cover_path"]
-                if os.path.exists(cover_path):
-                    pixmap = QPixmap(cover_path)
-                    if not pixmap.isNull():
-                        self.albumImage.clear()
-                        self.albumImage.setPixmap(pixmap)
-                        self._logger.log(f"已加载封面: {music_name}", "SUCCESS")
-                        return
+            if album and album.get("cover_path") and os.path.exists(album["cover_path"]):
+                pixmap = QPixmap(album["cover_path"])
+                if not pixmap.isNull():
+                    self.albumImage.clear()
+                    self.albumImage.setPixmap(pixmap)
+                    return
             self.albumImage.clear()
             self.albumImage.setText(f"暂无封面: {music_name}")
-            self._logger.log(f"未找到封面: {music_name}", "WARNING")
         except Exception as e:
             self._logger.log(f"加载封面失败: {e}", "ERROR")
 

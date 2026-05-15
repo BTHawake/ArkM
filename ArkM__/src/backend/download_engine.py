@@ -1,43 +1,31 @@
+"""明日方舟音乐下载引擎"""
 import os
+import json
+import random
+import logging
 from dataclasses import dataclass
 from time import sleep
 from typing import Any, TypeAlias, TypeGuard, Callable, Optional
 from abc import ABC
-import random
-import json
+
 from requests import Response, get, RequestException
-import logging
-'''
-以后这里更新图片下载然后合成到音乐里
 
-'''
+from config import (
+    API_SONGS,
+    DOWNLOADED_FILE,
+    UNDOWNLOADED_FILE,
+    SUFFIX_MAPPING_FILE,
+    MUSIC_PATH,
+)
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-# 下载引擎内置日志
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
-API_SONGS = "https://monster-siren.hypergryph.com/api/songs"
-API_ALBUMS = "https://monster-siren.hypergryph.com/api/albums"
-
-DOWNLOADED_FILE = "../Persistence/downloaded.json"
-UNDOWNLOADED_FILE = "../Persistence/undownloaded.json"
-SUFFIX_MAPPING_FILE = "../Persistence/suffix_mapping.json"
-
-MUSIC_PATH = "../songs/"
-ALBUM_PATH = "../albums/"
-
-cid2name = {}
-name2cid = {}
-cid2album = {}  # song_cid -> album_cid
-cid2suffix = {}
-
-# 进度回调函数类型
 ProgressCallback = Optional[Callable[[str, int, int], None]]
 
 
-# 清理函数改由 FastAPI shutdown 事件调用
+# ---- Result 类型 ----
 
-# IKUN_111友情赞助
 class _Result(ABC):
     def unwrap_or(self, default: Any) -> Any: ...
 
@@ -78,7 +66,7 @@ def is_err(result: Result) -> TypeGuard[Err]:
 
 
 def noexcept_get(*args, **kwargs) -> Result:
-    """安全的GET请求，包含重试机制"""
+    """安全的 GET 请求，包含重试机制"""
     max_retries = 3
     for attempt in range(max_retries):
         try:
@@ -89,7 +77,7 @@ def noexcept_get(*args, **kwargs) -> Result:
             if attempt == max_retries - 1:
                 return Err(e)
             logger.warning(f"请求失败，第{attempt + 1}次重试: {e}")
-            sleep(2 ** attempt)  # 指数退避
+            sleep(2**attempt)
     return Err(Exception("所有重试都失败了"))
 
 
@@ -98,87 +86,6 @@ def get_response_json(response: Response) -> Result:
         return Ok(response.json())
     except Exception as e:
         return Err(e)
-
-
-class Info:
-    all_song_info: Any = None
-    cid_list: Any = None
-    downloaded = {}
-    undownloaded = {}
-
-
-    @classmethod
-    def init_all_song_info(cls):
-        """初始化所有歌曲信息"""
-        response = noexcept_get(url=API_SONGS)
-        if is_err(response):
-            logger.error('获取歌曲信息失败')
-            raise RuntimeError('获取歌曲信息失败')
-        response = response.value
-        cls.all_song_info = get_response_json(response)
-        if is_err(cls.all_song_info):
-            logger.error('解析歌曲信息失败')
-            raise RuntimeError('解析歌曲信息失败')
-        cls.all_song_info = cls.all_song_info.value
-
-    @classmethod
-    def init_download(cls):
-        """初始化已下载歌曲记录"""
-        # 获取cid、name、albumCid的映射
-        for item in cls.all_song_info["data"]["list"]:
-            cid = item['cid']
-            name = item['name']
-            album_cid = item.get('albumCid', '')
-            cid2name[cid] = name
-            name2cid[name] = cid
-            cid2album[cid] = album_cid
-
-        # 读取已下载歌曲记录
-        cls.downloaded = cls._load_json_file(DOWNLOADED_FILE, {})
-
-        # 如果下载记录为空，初始化所有歌曲为未下载状态
-        if not cls.downloaded:
-            cls.downloaded = {item["cid"]: False for item in cls.all_song_info["data"]["list"]}
-            cls._save_json_file(DOWNLOADED_FILE, cls.downloaded)
-
-        # 初始化未下载列表
-        cls.undownloaded = {
-            item["cid"]: True
-            for item in cls.all_song_info["data"]["list"]
-            if not cls.downloaded.get(item["cid"], False)
-        }
-
-        cls._save_json_file(UNDOWNLOADED_FILE, cls.undownloaded)
-
-    @classmethod
-    def init_cid_list(cls):
-        """初始化cid_list"""
-        songs_list = cls.all_song_info['data']['list']
-        cls.cid_list = [li['cid'] for li in songs_list]
-        logger.info(f"获取CID成功，共 {len(cls.cid_list)} 首歌曲")
-
-    @staticmethod
-    def _load_json_file(filepath: str, default: Any) -> Any:
-        """加载JSON文件，如果文件不存在或为空则返回默认值"""
-        try:
-            if os.path.exists(filepath) and os.path.getsize(filepath) > 0:
-                with open(filepath, 'r', encoding='utf-8') as file:
-                    return json.load(file)
-            return default
-        except Exception as e:
-            logger.warning(f"加载文件 {filepath} 失败: {e}")
-            return default
-
-    @staticmethod
-    def _save_json_file(filepath: str, data: Any):
-        """保存数据到JSON文件"""
-        try:
-            os.makedirs(os.path.dirname(filepath), exist_ok=True)
-            with open(filepath, 'w', encoding='utf-8') as file:
-                json.dump(data, file, ensure_ascii=False, indent=4)
-        except Exception as e:
-            logger.error(f"保存文件 {filepath} 失败: {e}")
-            raise
 
 
 def format_size(size_bytes):
@@ -193,187 +100,249 @@ def format_size(size_bytes):
     return f"{size_bytes:.2f} {size_names[i]}"
 
 
-def download(song_json, progress_callback: ProgressCallback = None) -> Result:
-    """下载歌曲文件"""
-    try:
-        url = song_json['data']['sourceUrl']
-        cid = song_json['data']['cid']
-        suffix = url.split('.')[-1]
-        cid2suffix[cid] = suffix
-        filename = song_json['data']['name']
+# ---- 下载引擎 ----
 
-        response = noexcept_get(url, stream=True, timeout=(10, 10))
+class DownloadEngine:
+    """音乐下载引擎（实例化，状态自包含）"""
+
+    def __init__(self):
+        self.cid2name: dict[str, str] = {}
+        self.name2cid: dict[str, str] = {}
+        self.cid2album: dict[str, str] = {}
+        self.cid2suffix: dict[str, str] = {}
+        self.downloaded: dict[str, bool] = {}
+        self.undownloaded: dict[str, bool] = {}
+        self.all_song_info: Any = None
+
+    # ---- 初始化 ----
+
+    def init(self):
+        """初始化引擎"""
+        logger.info("下载引擎初始化中...")
+        directories = [MUSIC_PATH, os.path.dirname(DOWNLOADED_FILE)]
+        for d in directories:
+            os.makedirs(d, exist_ok=True)
+
+        self._load_suffix_mapping()
+        self._init_all_song_info()
+        self._init_download()
+        logger.info(f"下载引擎初始化完成，共 {len(self.cid2name)} 首歌曲")
+
+    def _init_all_song_info(self):
+        response = noexcept_get(url=API_SONGS)
         if is_err(response):
-            return response
+            raise RuntimeError("获取歌曲信息失败")
+        self.all_song_info = get_response_json(response.value)
+        if is_err(self.all_song_info):
+            raise RuntimeError("解析歌曲信息失败")
+        self.all_song_info = self.all_song_info.value
 
-        response = response.unwrap()
-        sleep(random.uniform(0.5, 2))
+    def _init_download(self):
+        for item in self.all_song_info["data"]["list"]:
+            cid = item["cid"]
+            name = item["name"]
+            album_cid = item.get("albumCid", "")
+            self.cid2name[cid] = name
+            self.name2cid[name] = cid
+            self.cid2album[cid] = album_cid
 
-        total_size = int(response.headers.get('content-length', 0))
-        downloaded_size = 0
+        self.downloaded = self._load_json(DOWNLOADED_FILE, {})
+        if not self.downloaded:
+            self.downloaded = {item["cid"]: False for item in self.all_song_info["data"]["list"]}
+            self._save_json(DOWNLOADED_FILE, self.downloaded)
 
-        os.makedirs(MUSIC_PATH, exist_ok=True)
+        self.undownloaded = {
+            cid: True
+            for cid in self.cid2name
+            if not self.downloaded.get(cid, False)
+        }
+        self._save_json(UNDOWNLOADED_FILE, self.undownloaded)
 
-        filepath = os.path.join(MUSIC_PATH, f"{filename}.{suffix}")
-        with open(filepath, 'wb') as file:
-            for chunk in response.iter_content(chunk_size=8192):
-                if chunk:
-                    file.write(chunk)
-                    downloaded_size += len(chunk)
+    def _load_suffix_mapping(self):
+        self.cid2suffix = self._load_json(SUFFIX_MAPPING_FILE, {})
+        logger.info(f"已加载后缀映射，共 {len(self.cid2suffix)} 条记录")
 
-                    # 返回已下载的文件大小，前面emit()检测数据变化，然后更新
-                    if progress_callback:
-                        progress_callback(filename, downloaded_size, total_size)
+    # ---- 下载 ----
 
-        sleep(random.uniform(0.5, 2))
+    def download_music(self, music_name: str, progress_callback: ProgressCallback = None) -> bool:
+        """下载单首音乐（接受歌名或CID）"""
+        cid = self.name2cid.get(music_name, music_name)
+        song_url = f"https://monster-siren.hypergryph.com/api/song/{cid}"
 
-        return Ok(filepath)
-
-    except Exception as e:
-        logger.error(f"下载失败: {e}")
-        return Err(e)
-
-
-def get_music(cids, progress_callback: ProgressCallback = None):
-    """获取并下载音乐"""
-    success_count = 0
-    fail_count = 0
-
-    for i, cid in enumerate(cids, start=1):
-        if Info.downloaded.get(cid, False):
-            logger.info(f"检测到歌曲 {cid2name[cid]} 已下载，已跳过")
-            continue
-
-        song_url = f'https://monster-siren.hypergryph.com/api/song/{cid}'
         response = noexcept_get(url=song_url)
         if is_err(response):
-            logger.error(f'{cid2name[cid]} 获取信息失败: {response.error}')
-            fail_count += 1
-            continue
+            logger.error(f"获取歌曲信息失败: {response.error}")
+            return False
 
         song_json = get_response_json(response.unwrap())
         if is_err(song_json):
-            logger.error(f'{cid2name[cid]} 解析信息失败')
-            fail_count += 1
-            continue
+            logger.error(f"解析歌曲信息失败")
+            return False
 
-        # 创建包装的进度回调
-        def create_wrapped_callback(original_callback, song_name):
-            if not original_callback:
-                return None
-
-            def wrapped_callback(filename, downloaded, total):
-                original_callback(song_name, downloaded, total)
-
-            return wrapped_callback
-
-        wrapped_callback = create_wrapped_callback(progress_callback, cid2name[cid])
-
-        result = download(song_json.unwrap(), wrapped_callback)
+        result = self._download_file(song_json.unwrap(), progress_callback)
         if is_ok(result):
-            path = result.unwrap()
-            Info.downloaded[cid] = True
-            if cid in Info.undownloaded:
-                del Info.undownloaded[cid]
-            success_count += 1
-            logger.info(f"文件保存在 {path}，进度为 {i}/{len(cids)}")
-        else:
-            logger.error(f'{cid2name[cid]} 下载失败: {result.error}')
-            fail_count += 1
+            self.downloaded[cid] = True
+            self.undownloaded.pop(cid, None)
+            self._save_downloaded()
+            self._save_suffix_mapping()
+            return True
+        return False
 
-    return success_count, fail_count
+    def _download_file(self, song_json: dict, progress_callback: ProgressCallback = None) -> Result:
+        try:
+            url = song_json["data"]["sourceUrl"]
+            cid = song_json["data"]["cid"]
+            suffix = url.split(".")[-1]
+            self.cid2suffix[cid] = suffix
+            filename = song_json["data"]["name"]
+
+            response = noexcept_get(url, stream=True, timeout=(10, 10))
+            if is_err(response):
+                return response
+
+            response = response.unwrap()
+            sleep(random.uniform(0.5, 2))
+
+            total_size = int(response.headers.get("content-length", 0))
+            downloaded_size = 0
+
+            os.makedirs(MUSIC_PATH, exist_ok=True)
+            filepath = os.path.join(MUSIC_PATH, f"{filename}.{suffix}")
+
+            with open(filepath, "wb") as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    if chunk:
+                        f.write(chunk)
+                        downloaded_size += len(chunk)
+                        if progress_callback:
+                            progress_callback(filename, downloaded_size, total_size)
+
+            sleep(random.uniform(0.5, 2))
+            return Ok(filepath)
+
+        except Exception as e:
+            logger.error(f"下载失败: {e}")
+            return Err(e)
+
+    # ---- 删除 ----
+
+    def delete_music(self, music_name: str) -> tuple[bool, str]:
+        """删除已下载的音乐"""
+        if music_name not in self.name2cid:
+            return False, "歌曲不存在"
+
+        cid = self.name2cid[music_name]
+        if not self.downloaded.get(cid, False):
+            return False, "歌曲未下载"
+
+        suffix = self.cid2suffix.get(cid, "wav")
+        filename = f"{music_name}.{suffix}"
+        filepath = os.path.join(MUSIC_PATH, filename)
+
+        try:
+            if os.path.exists(filepath):
+                os.remove(filepath)
+                logger.info(f"成功删除文件: {filepath}")
+
+            self.downloaded[cid] = False
+            self.undownloaded[cid] = True
+            self._save_downloaded()
+
+            return True, f"成功删除 {filename}"
+        except Exception as e:
+            logger.error(f"删除文件失败: {e}")
+            return False, f"删除文件失败: {e}"
+
+    # ---- 查询 ----
+
+    def get_downloaded_music(self) -> list[str]:
+        return [
+            self.cid2name[cid]
+            for cid, is_dl in self.downloaded.items()
+            if is_dl and cid in self.cid2name
+        ]
+
+    def get_undownloaded_music(self) -> list[str]:
+        return [
+            self.cid2name[cid]
+            for cid, need_dl in self.undownloaded.items()
+            if need_dl and cid in self.cid2name
+        ]
+
+    # ---- 持久化 ----
+
+    def save_downloaded(self):
+        self._save_downloaded()
+
+    def save_suffix_mapping(self):
+        self._save_suffix_mapping()
+
+    def _save_downloaded(self):
+        self._save_json(DOWNLOADED_FILE, self.downloaded)
+        self._save_json(UNDOWNLOADED_FILE, self.undownloaded)
+        logger.info("已保存下载记录")
+
+    def _save_suffix_mapping(self):
+        self._save_json(SUFFIX_MAPPING_FILE, self.cid2suffix)
+        logger.info("已保存后缀映射")
+
+    @staticmethod
+    def _load_json(filepath: str, default: Any) -> Any:
+        try:
+            if os.path.exists(filepath) and os.path.getsize(filepath) > 0:
+                with open(filepath, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            return default
+        except Exception as e:
+            logger.warning(f"加载文件 {filepath} 失败: {e}")
+            return default
+
+    @staticmethod
+    def _save_json(filepath: str, data: Any):
+        try:
+            os.makedirs(os.path.dirname(filepath), exist_ok=True)
+            with open(filepath, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=4)
+        except Exception as e:
+            logger.error(f"保存文件 {filepath} 失败: {e}")
+            raise
 
 
-def save_downloaded():
-    """保存已下载歌曲记录"""
-    try:
-        Info._save_json_file(DOWNLOADED_FILE, Info.downloaded)
-        Info._save_json_file(UNDOWNLOADED_FILE, Info.undownloaded)
-        logger.info(f"已下载文件已保存")
-    except Exception as e:
-        logger.error(f"保存已下载歌曲失败: {e}")
+# ---- 模块级便捷函数（向后兼容） ----
 
-
-def save_suffix_mapping():
-    """保存后缀映射"""
-    try:
-        Info._save_json_file(SUFFIX_MAPPING_FILE, cid2suffix)
-        logger.info(f"后缀映射已保存")
-    except Exception as e:
-        logger.error(f"保存后缀映射失败: {e}")
-
-
-def load_suffix_mapping():
-    """加载后缀映射"""
-    global cid2suffix
-    cid2suffix = Info._load_json_file(SUFFIX_MAPPING_FILE, {})
-    logger.info(f"已加载后缀映射，共 {len(cid2suffix)} 条记录")
+_engine = DownloadEngine()
 
 
 def download_engine_init():
-    """主函数"""
-    logger.info("加载中...")
-
-    # 必需开辟的目录
-    directories = [ "../songs/", "../Persistence/"]
-    for directory in directories:
-        os.makedirs(directory, exist_ok=True)
-
-    load_suffix_mapping()
-
-    Info.init_all_song_info()
-    Info.init_download()
-    Info.init_cid_list()
-    logger.info("下载引擎初始化完成")
+    _engine.init()
 
 
-def download_music(music_name, progress_callback: ProgressCallback = None):
-    """下载单首音乐（接受歌名或CID）"""
-    # 如果是歌名则转为CID
-    cid = name2cid.get(music_name, music_name)
-    success_count, fail_count = get_music([cid], progress_callback)
-    save_downloaded()
-    save_suffix_mapping()
-    return success_count > 0
-
-
-def get_downloaded_music():
-    """获取已下载的音乐"""
-    return [cid2name[cid] for cid, is_downloaded in Info.downloaded.items()
-            if is_downloaded and cid in cid2name]
-
-
-def get_undownloaded_music():
-    """获取未下载的音乐"""
-    return [cid2name[cid] for cid, need_download in Info.undownloaded.items()
-            if need_download and cid in cid2name]
+def download_music(music_name, progress_callback=None):
+    return _engine.download_music(music_name, progress_callback)
 
 
 def delete_music(music_name):
-    """删除已下载的音乐"""
-    if music_name not in name2cid:
-        return False, "歌曲不存在"
+    return _engine.delete_music(music_name)
 
-    cid = name2cid[music_name]
-    if not Info.downloaded.get(cid, False):
-        return False, "歌曲未下载"
 
-    # 查找并删除文件
-    suffix = cid2suffix.get(cid, "wav")
-    filename = f"{music_name}.{suffix}"
-    filepath = os.path.join(MUSIC_PATH, filename)
+def get_downloaded_music():
+    return _engine.get_downloaded_music()
 
-    try:
-        if os.path.exists(filepath):
-            os.remove(filepath)
-            logger.info(f"成功删除文件: {filepath}")
 
-        Info.downloaded[cid] = False
-        Info.undownloaded[cid] = True
-        save_downloaded()
+def get_undownloaded_music():
+    return _engine.get_undownloaded_music()
 
-        return True, f"成功删除 {filename}"
 
-    except Exception as e:
-        logger.error(f"删除文件失败: {e}")
-        return False, f"删除文件失败: {e}"
+def save_downloaded():
+    _engine.save_downloaded()
+
+
+def save_suffix_mapping():
+    _engine.save_suffix_mapping()
+
+
+# 向后兼容的属性引用
+name2cid = _engine.name2cid
+cid2name = _engine.cid2name
+cid2album = _engine.cid2album
+cid2suffix = _engine.cid2suffix

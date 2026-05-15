@@ -4,6 +4,8 @@ import os
 from PySide6.QtCore import QObject, QTime, QUrl, QTimer
 from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
 
+from config import MUSIC_PATH
+
 
 class MusicPlayer(QObject):
     """封装所有播放逻辑：播放、暂停、停止、进度、音量"""
@@ -42,7 +44,7 @@ class MusicPlayer(QObject):
             if self._current_music and self._current_music != music_name:
                 self.stop()
 
-            music_dir = "../songs/"
+            music_dir = MUSIC_PATH
             if not os.path.exists(music_dir):
                 self._log("音乐目录不存在", "ERROR")
                 return False

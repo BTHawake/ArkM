@@ -5,11 +5,9 @@ import logging
 
 from requests import get
 
-from .download_engine import API_ALBUMS, ALBUM_PATH
+from config import API_ALBUMS, ALBUM_PATH, ALBUM_COVERS_FILE
 
 logger = logging.getLogger(__name__)
-
-ALBUM_COVERS_FILE = "../Persistence/album_covers.json"
 
 # 内存缓存：专辑列表（启动时初始化一次）
 _album_list: list[dict] = []
