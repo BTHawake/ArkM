@@ -114,6 +114,34 @@ async def delete(req: DeleteRequest):
     return {"success": success, "message": message}
 
 
+# ---- 聚合视图端点 (歌曲名 + 封面 URL 一次性返回) ----
+
+@app.get("/view/{kind}")
+async def aggregated_view(kind: str):
+    """返回歌曲名+封面URL的聚合数据，避免前端逐首请求。
+       kind: 'undownloaded' 或 'downloaded'"""
+    from .album_manager import _album_map
+    from .download_engine import name2cid, cid2album as _cid2album
+
+    if kind == "undownloaded":
+        songs = get_undownloaded_music()
+    elif kind == "downloaded":
+        songs = get_downloaded_music()
+    else:
+        raise HTTPException(status_code=400, detail=f"无效的视图类型: {kind}")
+
+    result = []
+    for name in songs:
+        song_cid = name2cid.get(name, "")
+        album_cid = _cid2album.get(song_cid, "")
+        cover_url = ""
+        if album_cid and album_cid in _album_map:
+            cover_url = f"/album/{album_cid}/cover"
+        result.append({"name": name, "cover_url": cover_url})
+
+    return {"songs": result, "count": len(result)}
+
+
 # ---- 音乐流媒体端点 ----
 
 @app.get("/stream/{music_name}")

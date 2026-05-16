@@ -17,55 +17,35 @@ function log(msg) {
 
 let _loadToken = 0;  // 竞态防护 token
 
-async function getSongs() {
-  const url = currentView === 0
-    ? `${API}/music/undownloaded`
-    : `${API}/music/downloaded`;
-  const resp = await fetch(url);
-  const data = await resp.json();
-  return data.songs || [];
-}
-
 async function loadCoverGrid() {
   const token = ++_loadToken;
   const grid = document.getElementById('cover-grid');
   grid.innerHTML = '';
 
-  const songs = await getSongs();
-  if (token !== _loadToken) return;  // 竞态：用户已切到其他视图
+  const kind = currentView === 0 ? 'undownloaded' : 'downloaded';
+  const resp = await fetch(`${API}/view/${kind}`).catch(() => null);
+  if (!resp || token !== _loadToken) return;
+  const data = await resp.json().catch(() => ({}));
+  const songs = data.songs || [];
+  if (token !== _loadToken) return;
 
   log(`${currentView === 0 ? '待下载' : '已下载'}: ${songs.length} 首`);
 
-  for (const name of songs) {
+  for (const item of songs) {
     if (token !== _loadToken) return;
+    const name = item.name;
 
     const card = document.createElement('div');
     card.className = 'cover-card';
     card.title = name;
 
-    let imgHtml = '';
-    try {
-      const resp = await fetch(`${API}/music/${encodeURIComponent(name)}/album`);
-      if (token !== _loadToken) return;
-      const album = (resp.status === 404) ? null : await resp.json();
-      if (album && album.album_cid) {
-        imgHtml = `<img src="${API}/album/${album.album_cid}/cover" onerror="this.parentElement.innerHTML='<div class=card-placeholder>🎵</div>'">`;
-      }
-    } catch {}
-    if (!imgHtml) imgHtml = '<div class="card-placeholder">🎵</div>';
+    const imgHtml = item.cover_url
+      ? `<img src="${API}${item.cover_url}" onerror="this.parentElement.innerHTML='<div class=card-placeholder>🎵</div>'">`
+      : '<div class="card-placeholder">🎵</div>';
 
     card.innerHTML = imgHtml + `<div class="card-name">${name}</div>`;
-
-    card.addEventListener('dblclick', () => {
-      if (currentView === 0) downloadMusic(name);
-      else playMusic(name);
-    });
-
-    card.addEventListener('contextmenu', (e) => {
-      e.preventDefault();
-      showContextMenu(e.clientX, e.clientY, name);
-    });
-
+    card.addEventListener('dblclick', () => { if (currentView === 0) downloadMusic(name); else playMusic(name); });
+    card.addEventListener('contextmenu', (e) => { e.preventDefault(); showContextMenu(e.clientX, e.clientY, name); });
     grid.appendChild(card);
   }
 }
