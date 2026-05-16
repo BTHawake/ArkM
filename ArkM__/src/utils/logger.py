@@ -1,6 +1,7 @@
 """日志组件：格式化日志输出与下载进度显示。"""
 import datetime
 from PySide6.QtGui import QTextCursor, QFont
+from core.result import format_size
 
 
 class EnhancedLogger:
@@ -70,12 +71,5 @@ class EnhancedLogger:
 
     @staticmethod
     def format_size(size_bytes):
-        """格式化文件大小"""
-        if size_bytes == 0:
-            return "0B"
-        size_names = ["B", "KB", "MB", "GB"]
-        i = 0
-        while size_bytes >= 1024 and i < len(size_names) - 1:
-            size_bytes /= 1024.0
-            i += 1
-        return f"{size_bytes:.2f} {size_names[i]}"
+        """委托给 core.result.format_size"""
+        return format_size(size_bytes)

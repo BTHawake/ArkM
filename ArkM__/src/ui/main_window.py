@@ -16,7 +16,6 @@ from PySide6.QtGui import QKeySequence, QShortcut, QIcon, QPixmap, QAction
 from ark_style import ARK_STYLESHEET
 from utils.logger import EnhancedLogger
 from core.music_player import MusicPlayer
-from core.music_controller import MusicController
 from core.api_client import ArkMApiClient
 
 

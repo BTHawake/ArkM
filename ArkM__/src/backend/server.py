@@ -4,34 +4,33 @@ import os
 import asyncio
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse, FileResponse
 from pydantic import BaseModel
 
-from .download_engine import (
-    download_engine_init,
-    download_music,
-    delete_music,
-    get_downloaded_music,
-    get_undownloaded_music,
-    save_downloaded,
-    save_suffix_mapping,
-    logger,
-)
-from .album_manager import init_album_covers, get_all_albums, get_album_cover
+from .download_engine import DownloadEngine, logger
+from .album_manager import AlbumCoverManager
+
+
+def _get_engine(request: Request) -> DownloadEngine:
+    return request.app.state.engine
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """应用生命周期：启动时初始化，关闭时保存"""
     logger.info("后端服务启动中...")
-    download_engine_init()
-    init_album_covers()
+    engine = DownloadEngine()
+    engine.init()
+    app.state.engine = engine
+    album_mgr = AlbumCoverManager(engine)
+    album_mgr.init_metadata()
+    app.state.album_mgr = album_mgr
     logger.info("后端服务已就绪")
     yield
     logger.info("后端服务关闭中，保存数据...")
-    save_downloaded()
-    save_suffix_mapping()
+    engine.save_downloaded()
+    engine.save_suffix_mapping()
     logger.info("数据已保存")
 
 
@@ -58,14 +57,14 @@ class MessageResponse(BaseModel):
 @app.get("/music/undownloaded")
 async def undownloaded_list():
     """获取待下载歌曲列表"""
-    songs = get_undownloaded_music()
+    songs = _get_engine(request).get_undownloaded_music()
     return {"songs": songs, "count": len(songs)}
 
 
 @app.get("/music/downloaded")
 async def downloaded_list():
     """获取已下载歌曲列表"""
-    songs = get_downloaded_music()
+    songs = _get_engine(request).get_downloaded_music()
     return {"songs": songs, "count": len(songs)}
 
 
@@ -89,7 +88,7 @@ async def download(req: DownloadRequest):
             loop.call_soon_threadsafe(progress_queue.put_nowait, data)
 
         # 在后台线程执行下载（不阻塞事件循环）
-        result = await loop.run_in_executor(None, download_music, music_name, progress_callback)
+        result = await loop.run_in_executor(None, request.app.state.engine.download_music, music_name, progress_callback)
 
         # 排空进度队列
         while not progress_queue.empty():
@@ -110,32 +109,31 @@ async def download(req: DownloadRequest):
 @app.post("/music/delete")
 async def delete(req: DeleteRequest):
     """删除一首歌"""
-    success, message = delete_music(req.music_name)
+    success, message = _get_engine(request).delete_music(req.music_name)
     return {"success": success, "message": message}
 
 
 # ---- 聚合视图端点 (歌曲名 + 封面 URL 一次性返回) ----
 
 @app.get("/view/{kind}")
-async def aggregated_view(kind: str):
-    """返回歌曲名+封面URL的聚合数据，避免前端逐首请求。
-       kind: 'undownloaded' 或 'downloaded'"""
-    from .album_manager import _album_map
-    from .download_engine import name2cid, cid2album as _cid2album
+async def aggregated_view(kind: str, request: Request):
+    """返回歌曲名+封面URL的聚合数据，避免前端逐首请求。"""
+    engine = request.app.state.engine
+    album_mgr = request.app.state.album_mgr
 
     if kind == "undownloaded":
-        songs = get_undownloaded_music()
+        songs = engine.get_undownloaded_music()
     elif kind == "downloaded":
-        songs = get_downloaded_music()
+        songs = engine.get_downloaded_music()
     else:
         raise HTTPException(status_code=400, detail=f"无效的视图类型: {kind}")
 
     result = []
     for name in songs:
-        song_cid = name2cid.get(name, "")
-        album_cid = _cid2album.get(song_cid, "")
+        song_cid = engine.name2cid.get(name, "")
+        album_cid = engine.cid2album.get(song_cid, "")
         cover_url = ""
-        if album_cid and album_cid in _album_map:
+        if album_cid and album_cid in album_mgr._album_map:
             cover_url = f"/album/{album_cid}/cover"
         result.append({"name": name, "cover_url": cover_url})
 
@@ -145,9 +143,9 @@ async def aggregated_view(kind: str):
 # ---- 音乐流媒体端点 ----
 
 @app.get("/stream/{music_name}")
-async def stream_music(music_name: str):
+async def stream_music(music_name: str, request: Request):
     """根据歌名流式返回音频文件"""
-    from .download_engine import MUSIC_PATH, name2cid, cid2suffix
+    from config import MUSIC_PATH
 
     music_dir = MUSIC_PATH
     if not os.path.exists(music_dir):
@@ -172,16 +170,16 @@ async def stream_music(music_name: str):
 # ---- 专辑封面端点 ----
 
 @app.get("/album/list")
-async def album_list():
+async def album_list(request: Request):
     """获取所有专辑列表"""
-    albums = get_all_albums()
+    albums = request.app.state.album_mgr.get_all_albums()
     return {"albums": albums, "count": len(albums)}
 
 
 @app.get("/album/{album_cid}/cover")
 async def album_cover(album_cid: str):
     """返回封面图片文件"""
-    from .album_manager import ALBUM_PATH
+    from config import ALBUM_PATH
 
     for ext in ('jpg', 'png', 'webp'):
         path = os.path.join(ALBUM_PATH, f"{album_cid}.{ext}")
@@ -192,9 +190,9 @@ async def album_cover(album_cid: str):
 
 
 @app.get("/music/{music_name}/album")
-async def music_album(music_name: str):
+async def music_album(music_name: str, request: Request):
     """根据歌名返回专辑封面信息"""
-    result = get_album_cover(music_name)
+    result = request.app.state.album_mgr.get_cover(music_name)
     if result is None:
         raise HTTPException(status_code=404, detail="歌曲或专辑不存在")
     return result

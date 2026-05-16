@@ -72,3 +72,16 @@ def get_response_json(response: requests.Response) -> Result:
         return Ok(response.json())
     except Exception as e:
         return Err(e)
+
+
+def format_size(size_bytes):
+    """格式化文件大小为可读字符串（B/KB/MB/GB）。"""
+    if size_bytes == 0:
+        return "0 B"
+    names = ["B", "KB", "MB", "GB"]
+    i = 0
+    v = float(size_bytes)
+    while v >= 1024 and i < len(names) - 1:
+        v /= 1024.0
+        i += 1
+    return f"{v:.2f} {names[i]}"

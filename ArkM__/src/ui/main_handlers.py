@@ -13,7 +13,6 @@ from PySide6.QtGui import QKeySequence, QShortcut, QIcon, QPixmap, QAction
 
 from utils.logger import EnhancedLogger
 from core.music_player import MusicPlayer
-from core.music_controller import MusicController
 from core.api_client import ArkMApiClient
 
 
@@ -21,8 +20,9 @@ class MainHandlersMixin:
     def _init_data(self):
         self._logger = EnhancedLogger(self.logBrowser, self.downloadBrowser)
         self._player = MusicPlayer(self._logger.log)
-        self._controller = MusicController(self._logger.log)
-        self._controller.init()
+        self._api = ArkMApiClient()
+        self._download_items = []
+        self._music_items = []
         self._refresh_download_view()
         self._refresh_music_view()
         self._logger.clear()
@@ -33,7 +33,8 @@ class MainHandlersMixin:
 
     def _refresh_download_view(self):
         keyword = self.downloadSearchInput.text().strip()
-        items = self._controller.filter_download_items(keyword)
+        self._download_items = self._api.get_undownloaded()
+        items = [x for x in self._download_items if not keyword or keyword.lower() in x.lower()]
         self.downloadlistWidget.clear()
         for name in items:
             item = QListWidgetItem()
@@ -43,7 +44,8 @@ class MainHandlersMixin:
 
     def _refresh_music_view(self):
         keyword = self.musicSearchInput.text().strip()
-        items = self._controller.filter_music_items(keyword)
+        self._music_items = self._api.get_downloaded()
+        items = [x for x in self._music_items if not keyword or keyword.lower() in x.lower()]
         self.musicListWidget.clear()
         for name in items:
             item = QListWidgetItem()
@@ -115,7 +117,7 @@ class MainHandlersMixin:
     def _on_download_done(self, success: bool, message: str):
         self._logger.clear_progress()
         if success:
-            self._controller.on_download_done(success, message)
+            self._logger.log(message, "SUCCESS")
             self._refresh_download_view()
             self._refresh_music_view()
         else:
@@ -148,7 +150,7 @@ class MainHandlersMixin:
 
     def _on_delete_done(self, success: bool, message: str):
         if success:
-            self._controller.on_download_done(success, message)
+            self._logger.log(message, "SUCCESS")
             self._refresh_download_view()
             self._refresh_music_view()
             QMessageBox.information(self, "成功", "删除成功！")
@@ -238,7 +240,7 @@ class MainHandlersMixin:
 
     def _load_album_image(self, music_name: str):
         try:
-            album = self._controller.get_album_cover(music_name)
+            album = self._api.get_album_cover(music_name)
             if album and album.get("cover_path") and os.path.exists(album["cover_path"]):
                 pixmap = QPixmap(album["cover_path"])
                 if not pixmap.isNull():
@@ -284,7 +286,7 @@ class MainHandlersMixin:
 
     def _open_album_window(self):
         from ui.album_window import AlbumWindow
-        w = AlbumWindow(self._controller)
+        w = AlbumWindow(self._api)
         w.show()
 
     # ======================== 播放高亮 ========================

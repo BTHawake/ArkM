@@ -18,6 +18,7 @@ from core.result import (
     Result, Ok, Err,
     is_ok, is_err,
     noexcept_get, get_response_json,
+    format_size,
 )
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -28,16 +29,6 @@ ProgressCallback = Optional[Callable[[str, int, int], None]]
 
 def format_size(size_bytes):
     """格式化文件大小"""
-    if size_bytes == 0:
-        return "0B"
-    size_names = ["B", "KB", "MB", "GB"]
-    i = 0
-    while size_bytes >= 1024 and i < len(size_names) - 1:
-        size_bytes /= 1024.0
-        i += 1
-    return f"{size_bytes:.2f} {size_names[i]}"
-
-
 # ---- 下载引擎 ----
 
 class DownloadEngine:
@@ -246,41 +237,3 @@ class DownloadEngine:
             raise
 
 
-# ---- 模块级便捷函数（向后兼容） ----
-
-_engine = DownloadEngine()
-
-
-def download_engine_init():
-    _engine.init()
-
-
-def download_music(music_name, progress_callback=None):
-    return _engine.download_music(music_name, progress_callback)
-
-
-def delete_music(music_name):
-    return _engine.delete_music(music_name)
-
-
-def get_downloaded_music():
-    return _engine.get_downloaded_music()
-
-
-def get_undownloaded_music():
-    return _engine.get_undownloaded_music()
-
-
-def save_downloaded():
-    _engine.save_downloaded()
-
-
-def save_suffix_mapping():
-    _engine.save_suffix_mapping()
-
-
-# 向后兼容的属性引用
-name2cid = _engine.name2cid
-cid2name = _engine.cid2name
-cid2album = _engine.cid2album
-cid2suffix = _engine.cid2suffix
