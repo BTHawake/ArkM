@@ -12,12 +12,8 @@
   <div id="title-bar">
     <span id="title-text">ArkM - 明日方舟音乐终端</span>
     <div id="title-actions">
-      <button class="title-btn" id="min-btn">
-        <i class="material-icons">minimize</i>
-      </button>
-      <button class="title-btn title-close" id="close-btn">
-        <i class="material-icons">close</i>
-      </button>
+      <button class="title-btn" id="min-btn"><i class="material-icons">minimize</i></button>
+      <button class="title-btn title-close" id="close-btn"><i class="material-icons">close</i></button>
     </div>
   </div>
 
@@ -46,9 +42,7 @@
     <!-- 日志侧栏 -->
     <aside id="log-panel">
       <div id="log-header">
-        <button id="log-toggle">
-          <i class="material-icons">chevron_right</i>
-        </button>
+        <button id="log-toggle"><i class="material-icons">chevron_right</i></button>
         <span>日志</span>
         <button id="log-clear">清空</button>
       </div>
@@ -71,28 +65,33 @@
 
   <!-- 底部播放条 -->
   <div id="player-bar">
-    <button id="btn-play" title="播放">
-      <i class="material-icons">play_arrow</i>
-    </button>
-    <button id="btn-pause" title="停止">
-      <i class="material-icons">stop</i>
-    </button>
-    <div id="progress-container">
+    <canvas id="spectrum" width="1200" height="80"></canvas>
+    <div id="player-controls">
       <input type="range" id="progress-bar" min="0" max="1000" value="0">
+      <div id="player-row">
+        <div id="player-left">
+          <button id="bar-cover-btn" title="当前歌曲"></button>
+          <span id="bar-song-name">未在播放</span>
+        </div>
+        <div id="player-center">
+          <button id="btn-play" title="播放"><i class="material-icons">play_arrow</i></button>
+          <button id="btn-pause" title="停止"><i class="material-icons">stop</i></button>
+        </div>
+        <div id="player-right">
+          <span id="time-label">00:00 / 00:00</span>
+          <div id="volume-container">
+            <i class="material-icons vol-icon">volume_up</i>
+            <input type="range" id="volume-bar" min="0" max="100" value="50">
+          </div>
+          <button id="bar-queue-btn" title="播放列表"><i class="material-icons">queue_music</i></button>
+        </div>
+      </div>
     </div>
-    <span id="time-label">00:00 / 00:00</span>
-    <div id="volume-container">
-      <i class="material-icons vol-icon">volume_up</i>
-      <input type="range" id="volume-bar" min="0" max="100" value="50">
-    </div>
-    <div class="bar-spacer"></div>
-    <button id="bar-cover-btn" title="当前歌曲"></button>
-    <button id="bar-queue-btn" title="播放列表">
-      <i class="material-icons">queue_music</i>
-    </button>
   </div>
 
   <audio id="audio-player" preload="none"></audio>
+  <script src="state.js"></script>
+  <script src="spectrum.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
