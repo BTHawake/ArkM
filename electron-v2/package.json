@@ -15,17 +15,21 @@
       "main.js",
       "preload.js",
       "renderer/**",
-      "assets/**",
-      "backend/**"
+      "assets/**"
     ],
     "extraResources": [
-      { "from": "../ArkM__/src", "to": "backend" }
+      {
+        "from": "../ArkM__/dist/ark-backend",
+        "to": "ark-backend"
+      }
     ],
     "win": {
-      "icon": "assets/prts.ico"
+      "icon": "assets/prts.ico",
+      "target": "portable"
     }
   },
   "devDependencies": {
-    "electron": "^30.0.0"
+    "electron": "^30.0.0",
+    "electron-builder": "^26.8.1"
   }
 }

@@ -3,7 +3,7 @@ import os
 import json
 import random
 import logging
-from asyncio import sleep
+from time import sleep
 from typing import Any, Callable, Optional
 
 from requests import get
@@ -14,6 +14,7 @@ from config import (
     UNDOWNLOADED_FILE,
     SUFFIX_MAPPING_FILE,
     MUSIC_PATH,
+    ALBUM_PATH,
 )
 from core.result import (
     Result, Ok, Err,
@@ -49,7 +50,7 @@ class DownloadEngine:
     def init(self):
         """初始化引擎"""
         logger.info("下载引擎初始化中...")
-        directories = [MUSIC_PATH, os.path.dirname(DOWNLOADED_FILE)]
+        directories = [MUSIC_PATH, os.path.dirname(DOWNLOADED_FILE), ALBUM_PATH]
         for d in directories:
             os.makedirs(d, exist_ok=True)
 

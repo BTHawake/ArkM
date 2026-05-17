@@ -2,7 +2,8 @@ const { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain } = require('electr
 const { spawn } = require('child_process');
 const path = require('path');
 
-const PORT = 8585;
+const DEV_PORT = 8585;
+const PKG_PORT = 8586;
 const BACKEND_DIR = path.join(__dirname, '..', 'ArkM__', 'src');
 
 class AppLifecycle {
@@ -13,18 +14,29 @@ class AppLifecycle {
     this.isQuitting = false;
   }
 
+  get port() { return app.isPackaged ? PKG_PORT : DEV_PORT; }
+
   // ---- 后端 ----
 
   startBackend() {
+    const p = this.port;
     return new Promise((resolve, reject) => {
-      this.backendProc = spawn('python', ['-m', 'uvicorn', 'backend.server:app', '--host', 'localhost', '--port', String(PORT)], { cwd: BACKEND_DIR, stdio: 'pipe' });
+      let cmd, args, cwd;
+      if (app.isPackaged) {
+        cmd = path.join(process.resourcesPath, 'ark-backend', 'ark-backend.exe');
+        args = []; cwd = process.resourcesPath;
+      } else {
+        cmd = 'python'; args = ['-m', 'uvicorn', 'backend.server:app', '--host', 'localhost', '--port', String(p)];
+        cwd = BACKEND_DIR;
+      }
+      this.backendProc = spawn(cmd, args, { cwd, stdio: 'pipe' });
       let attempts = 0;
       const check = setInterval(async () => {
         attempts++;
         try {
           const http = require('http');
           await new Promise((res, rej) => {
-            const req = http.get(`http://localhost:${PORT}/music/downloaded`, r => { r.resume(); res(); });
+            const req = http.get(`http://localhost:${p}/music/downloaded`, r => { r.resume(); res(); });
             req.on('error', rej); req.setTimeout(2000, () => { req.destroy(); rej(new Error('timeout')); });
           });
           clearInterval(check); console.log('Backend ready'); resolve();
@@ -47,7 +59,7 @@ class AppLifecycle {
       webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false }
     });
 
-    this.mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'), { query: { port: String(PORT) } });
+    this.mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'), { query: { port: String(this.port) } });
     this.mainWindow.on('restore', () => { this.mainWindow.setSkipTaskbar(false); });
   }
 

@@ -55,21 +55,21 @@ class MessageResponse(BaseModel):
 # ---- 端点 ----
 
 @app.get("/music/undownloaded")
-async def undownloaded_list():
+async def undownloaded_list(request: Request):
     """获取待下载歌曲列表"""
     songs = _get_engine(request).get_undownloaded_music()
     return {"songs": songs, "count": len(songs)}
 
 
 @app.get("/music/downloaded")
-async def downloaded_list():
+async def downloaded_list(request: Request):
     """获取已下载歌曲列表"""
     songs = _get_engine(request).get_downloaded_music()
     return {"songs": songs, "count": len(songs)}
 
 
 @app.post("/music/download")
-async def download(req: DownloadRequest):
+async def download(req: DownloadRequest, request: Request):
     """下载一首歌，SSE 流式返回进度"""
     music_name = req.music_name
 
@@ -107,7 +107,7 @@ async def download(req: DownloadRequest):
 
 
 @app.post("/music/delete")
-async def delete(req: DeleteRequest):
+async def delete(req: DeleteRequest, request: Request):
     """删除一首歌"""
     success, message = _get_engine(request).delete_music(req.music_name)
     return {"success": success, "message": message}
