@@ -34,7 +34,8 @@ body{display:flex;flex-direction:column;height:100vh;background:rgba(18,18,18,.9
 .cover-card img{width:128px;height:128px;border-radius:4px;object-fit:cover;background:rgba(30,30,30,.5);animation:fadeIn .5s ease}
 @keyframes fadeIn{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:scale(1)}}
 .cover-card .card-name{font-size:11px;color:#bbb;text-align:center;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.cover-card .card-placeholder{width:128px;height:128px;display:flex;align-items:center;justify-content:center;font-size:36px;border-radius:4px;background:rgba(30,30,30,.5)}
+.cover-card .card-placeholder{width:128px;height:128px;display:flex;align-items:center;justify-content:center;font-size:36px;border-radius:4px;background:linear-gradient(135deg,rgba(40,40,40,.6),rgba(30,30,30,.4));animation:placeholderPulse 1.5s ease-in-out infinite}
+@keyframes placeholderPulse{0%,100%{opacity:.5}50%{opacity:.8}}
 
 /* 日志 */
 #log-panel{width:200px;display:flex;flex-direction:column;background:rgba(22,22,22,.7);border-left:1px solid #333}
@@ -87,6 +88,9 @@ body{display:flex;flex-direction:column;height:100vh;background:rgba(18,18,18,.9
 #bar-queue-btn{width:38px;height:38px;border:none;border-radius:6px;background:0 0;color:#aaa;cursor:pointer;display:flex;align-items:center;justify-content:center}
 #bar-queue-btn:hover{background:rgba(60,60,60,.5);color:#ddd}
 #bar-queue-btn .material-icons{font-size:20px}
+
+/* 下载状态条 */
+#download-status{position:absolute;bottom:80px;left:0;right:0;height:28px;display:flex;align-items:center;justify-content:center;background:rgba(0,204,136,.15);border-top:1px solid rgba(0,204,136,.3);color:#00cc88;font-size:12px;z-index:5}
 
 /* 滚动条 */
 ::-webkit-scrollbar{width:6px}

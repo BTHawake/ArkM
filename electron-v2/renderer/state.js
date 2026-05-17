@@ -3,6 +3,9 @@ const state = {
   viewId: 0,
   currentView: 0,
   playQueue: [],
+  playHistory: [],
+  downloadQueue: [],
+  downloading: false,
   currentMusic: null,
   popupMode: 'cover',
 };
